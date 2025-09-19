@@ -1,0 +1,1 @@
+gfortran -o infinite_keltoum infinite_keltoum.f calc_erreurs_keltoum_ok.f construir.f exemples_keltoum.f gausses.f gradients_keltoum.F gradients_keltoum1.f interpolation.f mesh_infinite_keltoum.f ordre0_directRhs_keltoum.f solveur_keltoum.f utile_infinite_keltoum.f -Wunused -Wall -O2
