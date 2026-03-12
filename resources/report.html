@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>خطة عمل المشروع - حل FEM/IFEM</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.8;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      color: #333;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 20px 0;
+    }
+
+    th,
+    td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: right;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    pre {
+      background-color: #f4f4f4;
+      padding: 15px;
+      overflow-x: auto;
+      border-radius: 5px;
+    }
+
+    code {
+      font-family: 'Courier New', monospace;
+      background-color: #f4f4f4;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+
+    .note {
+      background-color: #fff3cd;
+      padding: 10px;
+      border-right: 4px solid #ffc107;
+      margin: 10px 0;
+    }
+
+    hr {
+      border: none;
+      border-top: 2px solid #ddd;
+      margin: 30px 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1 id="project-title">خطة عمل المشروع — حل FEM/IFEM</h1>
+  <p><strong>المشروع:</strong> حل FEM/IFEM للمعادلات التفاضلية الجزئية الإهليلجية من الرتبة الثانية ثلاثية الأبعاد في
+    المجالات غير المحدودة</p>
+  <p><strong>دليل العمل:</strong> <code>/home/abdeldjalile-lafkir/Projects/maroua-project/</code></p>
+  <p><strong>التنفيذ المرجعي:</strong> <code>original/</code></p>
+  <p><strong>التنفيذ المعدل:</strong> <code>code/</code></p>
+
+  <hr>
+
+  <h2>نظرة عامة على المشروع</h2>
+
+  <p>هذا المشروع ينفذ حلاً مشتركًا لطريقة العناصر المحدودة اللانهائية (IFEM) + طريقة العناصر المحدودة (FEM) للابلاسيان
+    ثلاثي الأبعاد في المجالات غير المحدودة. يتم تقسيم المجال إلى:</p>
+  <ul>
+    <li><strong>المجالات 1–4:</strong> أربعة محددات لا نهائية (منطقة IFEM)، الشبكة تُولَّد تحليليًا</li>
+    <li><strong>المجال 5:</strong> منطقة FEM محدودة واحدة</li>
+  </ul>
+
+  <p><code>original/</code> يُنشئ جميع المجالات الخمسة داخليًا (تحليليًا).</p>
+  <p><code>code/</code> يُنشئ المجالات 1–4 بالطريقة نفسها، لكن يقرأ المجال 5 من ملفات خارجية
+    (<code>coordinates.dat</code>، <code>tetra.dat</code>) المُنتَجة بواسطة سكريبت Python/MATLAB.</p>
+
+  <hr>
+
+  <h2>البنية المعمارية</h2>
+
+  <h3>المعلمات الرئيسية (في كلا النسختين)</h3>
+
+  <table>
+    <tr>
+      <th>المعلمة</th>
+      <th>القيمة</th>
+      <th>الوصف</th>
+    </tr>
+    <tr>
+      <td><code>N</code></td>
+      <td>20</td>
+      <td>مستوى تحسين الشبكة</td>
+    </tr>
+    <tr>
+      <td><code>Ng</code></td>
+      <td>10</td>
+      <td>معلمة التكامل عدديًا</td>
+    </tr>
+    <tr>
+      <td><code>gamma1</code></td>
+      <td>1.D0</td>
+      <td>معلمة دالة الوزن</td>
+    </tr>
+    <tr>
+      <td><code>gamma2</code></td>
+      <td>3.6D0</td>
+      <td>معلمة دالة الوزن (يجب أن تكون > 3)</td>
+    </tr>
+    <tr>
+      <td><code>exmp</code></td>
+      <td>1</td>
+      <td>محدد حالة الاختبار/مثال</td>
+    </tr>
+    <tr>
+      <td><code>iso</code></td>
+      <td>1</td>
+      <td>علامة الت�</td>
+    </tr>
+    <tr>
+      <td><code>pform</code></td>
+      <td>2.D0</td>
+      <td>حجم/شكل منطقة FEM (مقياس tetrahedron المرجعي)</td>
+    </tr>
+    <tr>
+      <td><code>mu</code></td>
+      <td>0.5D0</td>
+      <td>معلمة تدريج الشبكة (0 &lt; mu &le; 1)</td>
+    </tr>
+    <tr>
+      <td><code>resid</code></td>
+      <td>1.D-6</td>
+      <td>تحمل متبقي solver CG</td>
+    </tr>
+    <tr>
+      <td><code>iter</code></td>
+      <td>30000</td>
+      <td>أقصى عدد من التكرارات لـ solver CG</td>
+    </tr>
+    <tr>
+      <td><code>nq</code></td>
+      <td>7</td>
+      <td>نقاط التكامل عدديًا على الأوجه</td>
+    </tr>
+    <tr>
+      <td><code>nqt</code></td>
+      <td>10</td>
+      <td>نقاط التكامل عدديًا في رباعيات الوجوه</td>
+    </tr>
+  </table>
+
+  <h3>المعلمات المشتقة عند N=20</h3>
+
+  <table>
+    <tr>
+      <th>المعلمة</th>
+      <th>صيغة <code>original/</code></th>
+      <th>قيمة <code>original/</code></th>
+      <th>صيغة <code>code/</code></th>
+      <th>قيمة <code>code/</code></th>
+    </tr>
+    <tr>
+      <td><code>nbprisme</code></td>
+      <td><code>(N-1)*N/2 + N*(N-1)*(2N-1)/6</code></td>
+      <td>2660</td>
+      <td>نفسها</td>
+      <td>2660</td>
+    </tr>
+    <tr>
+      <td><code>nbtetra</code></td>
+      <td><code>5*(3*nbprisme + N)</code></td>
+      <td>40000</td>
+      <td><code>4*(3*nbprisme + N)</code></td>
+      <td>32000</td>
+    </tr>
+    <tr>
+      <td><code>nbtetra1</code></td>
+      <td>—</td>
+      <td>—</td>
+      <td><code>nbtetra + nt</code></td>
+      <td>32000 + nt</td>
+    </tr>
+    <tr>
+      <td><code>nbnodes</code></td>
+      <td><code>5*(nbnodesTet - (N²+N+1))</code></td>
+      <td>6750</td>
+      <td><code>4*nbnodesTet - 3N² - 5N - 3</code></td>
+      <td>5781</td>
+    </tr>
+    <tr>
+      <td><code>nbnodes1</code></td>
+      <td>—</td>
+      <td>—</td>
+      <td><code>nbnodes + gm</code></td>
+      <td>5781 + gm</td>
+    </tr>
+  </table>
+
+  <div class="note">
+    <p><strong>ملاحظة حول <code>nbtetra</code>:</strong> <code>original/</code> يحسب 5 مجالات ×
+      <code>(3*nbprisme+N)</code> رباعيات لكل منها.<br>
+      <code>code/</code> يحسب فقط المجالات اللانهائية الأربعة IFEM؛ tetrads FEM تُضاف بشكل منفصل عبر <code>nt</code>.
+    </p>
+  </div>
+
+  <div class="note">
+    <p><strong>ملاحظة حول <code>nbnodes</code>:</strong> صيغة <code>original/</code>
+      <code>5*(nbnodesTet-(N²+N+1))</code> تأخذ في الاعتبار جميع المجالات الخمسة. صيغة <code>code/</code> تحسب فقط العقد
+      الفريدة اللانهائية الأربعة IFEM؛ عقد FEM تُضاف بشكل منفصل عبر <code>gm</code>. تم اشتقاق صيغة IFEM-only الصحيحة
+      كما يلي:<br>
+      <code>4*nbnodesTet - 3*N² - 5*N - 3</code> (انظر الجلسة 1، الخطأ 2).
+    </p>
+  </div>
+
+  <h3>اختلافات هيكل الملفات</h3>
+
+  <table>
+    <tr>
+      <th>الملف</th>
+      <th><code>original/</code></th>
+      <th><code>code/</code></th>
+    </tr>
+    <tr>
+      <td><code>fondements_keltoum.h</code></td>
+      <td><code>gm</code>، <code>nt</code> غير موجودين؛ مصفوفات المجالات الخمسة</td>
+      <td>معلمات <code>gm</code>، <code>nt</code>؛ مصفوفات IFEM/المشتركة منفصلة</td>
+    </tr>
+    <tr>
+      <td><code>mesh_infinite_keltoum.f</code></td>
+      <td><code>mesh()</code> مع 7 وسائط؛ حلقة <code>do dom=1,5</code></td>
+      <td><code>mesh()</code> مع 13 وسائط؛ <code>do dom=1,4</code> + استدعاء <code>construir()</code></td>
+    </tr>
+    <tr>
+      <td><code>construir.f</code></td>
+      <td>غير موجود</td>
+      <td>يقرأ <code>tetra.dat</code> و <code>coordinates.dat</code></td>
+    </tr>
+    <tr>
+      <td><code>constants_keltoum.h</code></td>
+      <td>متطابقة</td>
+      <td>متطابقة</td>
+    </tr>
+    <tr>
+      <td><code>simplexes_keltoum.h</code></td>
+      <td>متطابقة</td>
+      <td>متطابقة</td>
+    </tr>
+  </table>
+
+  <h3><code>code/fondements_keltoum.h</code> (الحالة الحالية)</h3>
+
+  <pre><code>! Etat de modification : fini
+      Integer N, nbnodes, nbtetra, Ng, nbprisme,gm, nt,
+      & nbnodes1, nbtetra1
+      parameter (N = 20, Ng = 10, gm= 213, nt= 592,
+      & nbprisme = ((N-1)*N)/2 + (N*(N-1)*(2*N-1))/6,
+      & nbtetra = 4*(3*nbprisme + N),
+      & nbtetra1 = 4*(3*nbprisme + N)+ nt,
+      & nbnodes = 4*((N+1)*(N+2)*(N+3)/6) - 3*N*N - 5*N - 3,
+      & nbnodes1 = 4*((N+1)*(N+2)*(N+3)/6) - 3*N*N - 5*N - 3 + gm)
+
+      integer tetra(4,nbtetra), domnod(nbnodes1),
+      & domtet(nbtetra1),tetra1(4,nbtetra1)
+
+      common/datamailla/tetra, domnod, domtet, tetra1
+
+      double precision grad_grad(10, nbtetra1),
+      & xin(3,nbnodes), xin1(3,nbnodes1)
+      common/basicdata/grad_grad, xin, xin1</code></pre>
+
+  <h3>تصميم شبكة FEM (المجال 5 في <code>code/</code>)</h3>
+
+  <p><code>code/</code> يستخدم بشكل متعمد <strong>هندسة مختلفة للمجال 5</strong> عن <code>original/</code>:</p>
+
+  <ul>
+    <li><code>original/</code> المجال 5: الداخل الكامل لأربعة محددات كبيرة، <code>pform=2</code>، N=20، 1771 عقدة، 8000
+      tetrads، <code>hs = 0.28284</code></li>
+    <li><code>code/</code> المجال 5: <strong>شبكة تجويف كروي</strong> — نقاط من المجال الكامل 5 التي تقع خارج كرة نصف
+      القطر <code>R=1.5</code>، بالإضافة إلى نقاط سطح الكرة عند <code>R=1.5</code>.
+      تم البناء عبر alpha-shape (Delaunay + فلتر Circumsphere مع <code>alpha = R*0.8 = 1.2</code>).
+      213 عقدة، 592 tetrads، نطاق نصف قطر العقدة [1.5, 2.0]، <code>hs = 1.1623</code>.</li>
+  </ul>
+
+  <p>هذا متعمد: <code>shape.m</code> (MATLAB الأصلي) و <code>shape.py</code> (ما يعادله في Python) تنفذان كلاهما تصميم
+    التجويف هذا. منطقة FEM في <code>code/</code> لها ثقب كروي عند <code>R=1.5</code> حيث تتصل منطقة IFEM.</p>
+
+  <hr>
+
+  <h2>الجلسة 1 — ترحيل N=20 / pform=2 وإصلاح الأخطاء</h2>
+  <p><strong>التاريخ:</strong> 2027-03-07</p>
+
+  <h3>الهدف</h3>
+  <p>محاذاة <code>code/</code> لمطابقة تكوين المعلمات المستخدم في <code>original/</code> (N=20، pform=2.D0). في بداية
+    الجلسة 1، كان <code>code/</code> يستخدم N=10 و pform=8.D0.</p>
+
+  <h3>الأخطاء المكتشفة والمُصلحة</h3>
+
+  <h4>الخطأ 1 — مصفوفة <code>ww0</code> صغيرة جدًا (<code>code/infinite_keltoum.f:490</code>)</h4>
+  <p><strong>الأعراض:</strong> انهيار البرنامج / تجاوز حدود المصفوفة أثناء تجميع RHS.</p>
+  <pre><code>infinite_keltoum.f:512: Array reference out of bounds (32592 > 32000)</code></pre>
+  <p><strong>السبب الجذري:</strong> تم تحجيم <code>ww0</code> بـ <code>(10, nbtetra)</code> لكن حلقة التجميع تعمل حتى
+    <code>nbtetra1</code> (تتضمن tetrads FEM).</p>
+  <pre><code>! خاطئ
+      double precision ww0(10, nbtetra)
+      ! صحيح
+      double precision ww0(10, nbtetra1)</code></pre>
+  <p><strong>الملف:</strong> <code>code/infinite_keltoum.f</code>، السطر 490.</p>
+
+  <h4>الخطأ 2 — صيغة <code>nbnodes</code> خاطئة (<code>code/fondements_keltoum.h:8-9</code>)</h4>
+  <p><strong>الأعراض:</strong> بعد إصلاح الخطأ 1، تجاوز حدود الفهرس في الشبكة وقت التشغيل:</p>
+  <pre><code>Index '5782' of dimension 2 of array 'xin1' above upper bound of 5781</code></pre>
+  <p><strong>السبب الجذري:</strong> الصيغة القديمة <code>4*(nbnodesTet-(N²+N+1))</code> = 5400 لـ N=20، لكن عدد العقد
+    الفريدة الفعلي لـ IFEM هو 5781.</p>
+  <p><strong>الإصلاح:</strong></p>
+  <pre><code>nbnodes = 4*((N+1)*(N+2)*(N+3)/6) - 3*N*N - 5*N - 3 ! = 5781 for N=20
+      nbnodes1 = 4*((N+1)*(N+2)*(N+3)/6) - 3*N*N - 5*N - 3 + gm</code></pre>
+
+  <h4>الخطأ 3 — ملفات شبكة FEM الخاطئة (سياق الجلسة 1 فقط)</h4>
+  <p>في بداية الجلسة 1، كان <code>coordinates.dat</code> يحتوي على 414 عقدة / <code>tetra.dat</code> يحتوي على 1512
+    tetrads. كانت هذه من تشغيل alpha-shape سابق بمعلمات خاطئة.</p>
+  <p><strong>الإصلاح:</strong> استخرج شبكة المجال 5 مباشرة من <code>original/</code> (1771 عقدة، 8000 tetrads).</p>
+  <div class="note">
+    <p><strong>ملاحظة:</strong> كان هذا الإصلاح محددًا للاختبار مع نفس الهندسة مثل <code>original/</code>.
+      التصميم الحالي يستخدم شبكة التجويف الكروي (gm=213، nt=592)، وهي الهندسة المقصودة الصحيحة لـ <code>code/</code>.
+    </p>
+  </div>
+
+  <h4>الخطأ 4 — نطاق الدمج الخاطئ (<code>code/mesh_infinite_keltoum.f:968</code>)</h4>
+  <p><strong>الأعراض:</strong> 803 عقدة مدمجة بدلاً من 802؛ tetrad FEM تشير إلى العقدة 1 (Dirichlet).</p>
+  <p><strong>السبب الجذري:</strong> بدأت حلقة الدمج عند <code>j=1</code>، مما يسمح بالدمج على العقدة Dirichlet 1.</p>
+  <pre><code>! خاطئ
+      do j = 1, nbnodes
+      ! صحيح
+      do j = 2, nbnodes</code></pre>
+  <p><strong>الملف:</strong> <code>code/mesh_infinite_keltoum.f</code>، السطر 968.</p>
+
+  </div>
+
+  <h3>نتائج اختبار الجلسة 1 (مع gm=1771/nt=8000 — نفس الهندسة مثل original/)</h3>
+
+  <table>
+    <tr>
+      <th>المقياس</th>
+      <th><code>original/</code></th>
+      <th><code>code/</code></th>
+      <th>الحالة</th>
+    </tr>
+    <tr>
+      <td>فحص الحجم</td>
+      <td>ناجح</td>
+      <td>ناجح</td>
+      <td>✅</td>
+    </tr>
+    <tr>
+      <td>h (غير محدود)</td>
+      <td>0.33087</td>
+      <td>0.33087</td>
+      <td>✅ تطابق تام</td>
+    </tr>
+    <tr>
+      <td>hs (محدود)</td>
+      <td>0.28284</td>
+      <td>0.28284</td>
+      <td>✅ تطابق تام</td>
+    </tr>
+    <tr>
+      <td>عقد الحدود المدمجة</td>
+      <td>—</td>
+      <td>802</td>
+      <td>✅ تطابق مع الطوبولوجيا</td>
+    </tr>
+    <tr>
+      <td>L2 موزون</td>
+      <td>18.52%</td>
+      <td>18.52%</td>
+      <td>✅ تطابق لـ 8 أرقام معنوية</td>
+    </tr>
+    <tr>
+      <td>H1 موزون</td>
+      <td>38.15%</td>
+      <td>38.15%</td>
+      <td>✅ تطابق لـ 8 أرقام معنوية</td>
+    </tr>
+    <tr>
+      <td>L2 IFEM</td>
+      <td>14.20%</td>
+      <td>14.20%</td>
+      <td>✅ تطابق لـ 8 أرقام معنوية</td>
+    </tr>
+    <tr>
+      <td>H1 IFEM</td>
+      <td>27.82%</td>
+      <td>27.82%</td>
+      <td>✅ تطابق لـ 8 أرقام معنوية</td>
+    </tr>
+    <tr>
+      <td>L2 MEF</td>
+      <td>8.29%</td>
+      <td>8.29%</td>
+      <td>✅ تطابق</td>
+    </tr>
+    <tr>
+      <td><strong>H1 MEF</strong></td>
+      <td><strong>4.19%</strong></td>
+      <td><strong>9.47%</strong></td>
+      <td><strong>⚠️ اختلاف بمرتين</strong></td>
+    </tr>
+  </table>
+
+  <p>كان اختلاف H1 MEF لا يزال مفتوحًا في نهاية الجلسة 1.</p>
+
+  <hr>
+
+  <h2>الجلسة 2 — إعادة توليد nodes10.dat وتشغيل مع شبكة التجويف</h2>
+  <p><strong>التاريخ:</strong> 2028-03-08</p>
+
+  <h3>الهدف</h3>
+  <ul>
+    <li>إعادة تشغيل خط الإنتاج الكامل من البداية: إعادة توليد <code>original/nodes10.dat</code>، إعادة تشغيل
+      <code>shape.py</code>، تأكيد <code>gm</code>/<code>nt</code>، إعادة البناء وتشغيل <code>code/tester</code>.</li>
+    <li>الهندسة FEM المقصودة لـ <code>code/</code> هي <strong>شبكة التجويف الكروي</strong> (gm=213، nt=592) — وليست شبكة
+      المجال الكامل 5 المستخدمة في الجلسة 1.</li>
+  </ul>
+
+  <h3>الخطوات المنفذة</h3>
+
+  <h4>الخطوة 1 — تجهيز <code>original/mesh_infinite_keltoum.f</code></h4>
+  <p>أضفت كتابة الإخراج بين نهاية حلقة <code>do dom=1,5</code> (السطر 93) و <code>call make_tetra_whsp</code> (السطر
+    95):</p>
+  <pre><code>open(unit=99, file='nodes10.dat', status='replace')
+      do i = 1, 5*nbnodesTet
+      if (domnod(i) .eq. 5) then
+      write(99, '(3(1x,g22.15))') xin(1,i), xin(2,i), xin(3,i)
+      endif
+      enddo
+      close(99)</code></pre>
+  <p>استخدمت <code>5*nbnodesTet</code> (المُحسوب محليًا في <code>mesh()</code>) بدلاً من <code>nbnodes</code> (التي هي
+    <code>parameter</code> من <code>fondements_keltoum.h</code> غير مدرجة في <code>mesh_infinite_keltoum.f</code>).</p>
+
+  <p>المحاولة الأولى استخدمت <code>nbnodes</code> → خطأ في التجميع:</p>
+  <pre><code>Error: Symbol 'nbnodes' at (1) has no IMPLICIT type</code></pre>
+  <p>تم الإصلاح إلى <code>5*nbnodesTet</code>.</p>
+
+  <h4>الخطوة 2 — بناء <code>original/tester</code></h4>
+  <pre><code>cd original && gfortran -Wunused -o tester \
+      infinite_keltoum.f mesh_infinite_keltoum.f \
+      ordre0_directRhs_keltoum.f gradients_keltoum1.f \
+      calc_erreurs_keltoum_ok.f solveur_keltoum.f \
+      exemples_keltoum.f gausses.f interpolation.f \
+      utile_infinite_keltoum.f</code></pre>
+  <p>نجح البناء (تحذيرات فقط، لا أخطاء).</p>
+
+  <h4>الخطوة 3 — تشغيل <code>original/tester</code></h4>
+  <pre><code>cd original && ./tester</code></pre>
+  <p>الناتج الكامل:</p>
+  <pre><code>--> Initilization of constants...
+      Ng : 10
+      N : 20
+      Number of tetraedra : 40000
+      Number of vertices : 6750
+      Gamma : 1.0000000000000000
+      R : 2.0000000000000000
+      mu : 0.50000000000000000
+      --> Meshing...
+      The size h (in the unbounded domain): 0.33086944163580423
+      The size hs (in the bounded domain): 0.28284271247461990
+      ... done ...
+      --> Validity of the mesh: checking volumes
+      ... successful ...
+      --> Computing the exact solution
+      and the right-hand-side (by interpolation)
+      --> Computing the exact solution
+      and the right-hand-side (directly)
+      ... done ...
+      --> Computing some useful quantities...
+      ... done...
+      --> Solving the linear system...
+      ... done ...
+      --> Computing errors...
+      L'erreur relative euclidienne : 0.12317746136874926
+      L'erreur ponderee L2 relative : 0.18520682755133827
+      L'erreur ponderee H1 relative : 0.38148999006809503
+      L'erreur ponderee L2 relative (IFEM) : 0.14195399204677292
+      L'erreur ponderee H1 relative (IFEM) : 0.27819603271180954
+      L'erreur ponderee L2 relative (MEF) : 8.2904125992431688E-002
+      L'erreur ponderee H1 relative (MEF) : 4.1894514003939405E-002</code></pre>
+  <p>أنتج <code>original/nodes10.dat</code>: 1771 سطر، 3 أعمدة (x y z)، بدون رأس، بدون فهرس.</p>
+  <p>تم تأكيد التنسيق يتطابق مع توقعات <code>shape.py</code> <code>np.loadtxt</code>.</p>
+
+  <p>أول 5 أسطر من <code>nodes10.dat</code>:</p>
+  <pre><code> 1.88561808316413 0.00000000000000 -0.666666666666667
+      1.74419672692682 0.816496580927726E-01 -0.666666666666667
+      1.79133717900592 0.00000000000000 -0.533333333333333
+      1.60277537068951 0.163299316185545 -0.666666666666667
+      1.64991582276861 0.816496580927726E-01 -0.533333333333333</code></pre>
+
+  <h4>الخطوة 4 — إعادة التجهيز</h4>
+  <p>أزلت كتابة الإخراج من <code>original/mesh_infinite_keltoum.f</code>. تم استعادة الملف إلى حالته الأصلية (السطر 94
+    فارغ، السطر 95 <code>call make_tetra_whsp</code>).</p>
+
+  <h4>الخطوة 5 — إعادة تشغيل <code>shape.py</code></h4>
+  <pre><code>cd /home/abdeldjalile-lafkir/Projects/maroua-project && python3 shape.py</code></pre>
+  <p>الناتج:</p>
+  <pre><code>Loaded 1771 points from nodes10.dat
+      Points outside sphere (|x|>R=1.5): 92
+      Sphere surface points (unique): 134
+      Total points for alpha shape: 226
+      Delaunay tetrahedra before alpha filter: 1063
+      Tetrahedra after alpha filter (alpha=1.2000000000000002): 592
+
+      gm (FEM node count) = 213
+      nt (FEM tet count) = 592
+
+      Wrote code/tetra.dat and code/coordinates.dat
+
+      Update fondements_keltoum.h with: gm= 213, nt= 592
+      Sanity check passed: all tetra node indices in [1, gm]
+      Node radius range: [1.5000, 2.0000]</code></pre>
+  <p><code>gm=213, nt=592</code> — متطابقة مع قيم <code>fondements_keltoum.h</code> الموجودة.</p>
+  <p>لم تتطلب <code>code/fondements_keltoum.h</code> أي تغييرات.</p>
+
+  <h4>الخطوة 6 — بناء <code>code/tester</code></h4>
+  <pre><code>cd code && gfortran -O2 -fcheck=bounds -Wall \
+      gausses.f solveur_keltoum.f interpolation.f exemples_keltoum.f \
+      infinite_keltoum.f utile_infinite_keltoum.f mesh_infinite_keltoum.f \
+      construir.f ordre0_directRhs_keltoum.f gradients_keltoum1.f \
+      calc_erreurs_keltoum_ok.f -o tester</code></pre>
+  <p>نجح البناء (لا أخطاء).</p>
+
+  <h4>الخطوة 7 — تشغيل <code>code/tester</code></h4>
+  <pre><code>cd code && ./tester</code></pre>
+  <p>الناتج الكامل:</p>
+  <pre><code>--> Initilization of constants...
+      Ng : 10
+      N : 20
+      Number of tetraedra : 32000
+      Number of vertices : 5781
+      Gamma : 1.0000000000000000
+      R : 2.0000000000000000
+      mu : 0.50000000000000000
+      --> Meshing...
+      The nodes in the fem region have been constructed
+      Merged IFEM-FEM boundary nodes: 88
+      FEM tet 4001 : 792 807 943 944
+      FEM tet 4002 : 792 928 943 944
+      FEM tet 4003 : 808 793 792 928
+      FEM tet 4004 : 808 793 929 928
+      FEM tet 4005 : 808 944 929 928
+      The size h (in the unbounded domain): 0.33086944163580378
+      The size hs (in the bounded domain): 1.1623340832537223
+      ... done ...
+      --> Validity of the mesh: checking volumes
+      Warning (a mesh problem):
+      the sum of volumes of elements is different
+      from the total volume of the big subdomains !
+      --> Computing the exact solution
+      and the right-hand-side (by interpolation)
+      --> Computing the exact solution
+      and the right-hand-side (directly)
+      ... done ...
+      --> Computing some useful quantities...
+      ... done...
+      --> Solving the linear system...
+      Number of equations to solve: 5993
+      Starting CG solver...
+      ITERATION : 400 , RESIDU: 2.0498603739712391
+      ITERATION : 800 , RESIDU: 13.412786816786516
+      ITERATION : 1200 , RESIDU: 1.4266730245885173
+      ITERATION : 1600 , RESIDU: 2.7909729033993149
+      ITERATION : 2000 , RESIDU: 93.994364636379359
+      ITERATION : 2400 , RESIDU: 5.9566249388038477
+      ITERATION : 2800 , RESIDU: 1.0365093263342296E-002
+      ITERATION : 3200 , RESIDU: 2.8401958885509687E-003
+      ITERATION : 3600 , RESIDU: 2.2068281968303915E-003
+      ITERATION : 4000 , RESIDU: 7.8919696937067799E-003
+      ITERATION : 4400 , RESIDU: 1.6014303419251048E-002
+      ITERATION : 4800 , RESIDU: 1.1026706273863767E-004
+      ITERATION : 5200 , RESIDU: 2.4412473467383744E-004
+      ITERATION : 5600 , RESIDU: 7.6665598750935753E-005
+      CG solver completed with info = 0
+      --> Computing errors...
+      L'erreur relative euclidienne : 0.30750415856421454
+      L'erreur ponderee L2 relative : 0.30814916523010322
+      L'erreur ponderee H1 relative : 0.57965346426939635
+      L'erreur ponderee L2 relative (IFEM) : 0.24191941269527945
+      L'erreur ponderee H1 relative (IFEM) : 0.40460479698002261
+      L'erreur ponderee L2 relative (MEF) : 0.18441004127505042
+      L'erreur ponderee H1 relative (MEF) : 0.99831651341908301</code></pre>
+
+  <h3>تحليل نتائج الجلسة 2</h3>
+
+  <table>
+    <tr>
+      <th>المقياس</th>
+      <th><code>original/</code></th>
+      <th><code>code/</code> (شبكة التجويف)</th>
+      <th>ملاحظات</th>
+    </tr>
+    <tr>
+      <td>nbtetra</td>
+      <td>40000</td>
+      <td>32000</td>
+      <td>متوقع (4 مقابل 5 مجالات IFEM)</td>
+    </tr>
+    <tr>
+      <td>nbnodes</td>
+      <td>6750</td>
+      <td>5781</td>
+      <td>متوقع (IFEM-only)</td>
+    </tr>
+    <tr>
+      <td>gm (عقد FEM)</td>
+      <td>—</td>
+      <td>213</td>
+      <td>شبكة التجويف</td>
+    </tr>
+    <tr>
+      <td>nt (tetrads FEM)</td>
+      <td>—</td>
+      <td>592</td>
+      <td>شبكة التجويف</td>
+    </tr>
+    <tr>
+      <td>عقد الحدود المدمجة</td>
+      <td>—</td>
+      <td>88</td>
+      <td>مقابل 802 للمجال الكامل 5</td>
+    </tr>
+    <tr>
+      <td>h (غير محدود)</td>
+      <td>0.33087</td>
+      <td>0.33087</td>
+      <td>✅ تطابق تام</td>
+    </tr>
+    <tr>
+      <td>hs (محدود)</td>
+      <td>0.28284</td>
+      <td><strong>1.1623</strong></td>
+      <td>⚠️ مختلف بالتصميم (تجويف)</td>
+    </tr>
+    <tr>
+      <td>فحص الحجم</td>
+      <td>ناجح</td>
+      <td><strong>فشل</strong></td>
+      <td>⚠️ قيد التحقيق</td>
+    </tr>
+    <tr>
+      <td>L2 موزون</td>
+      <td>18.52%</td>
+      <td>30.81%</td>
+      <td>⚠️ مجال مختلف</td>
+    </tr>
+    <tr>
+      <td>H1 موزون</td>
+      <td>38.15%</td>
+      <td>57.97%</td>
+      <td>⚠️ مجال مختلف</td>
+    </tr>
+    <tr>
+      <td>L2 MEF</td>
+      <td>8.29%</td>
+      <td>18.44%</td>
+      <td>⚠️ مجال مختلف</td>
+    </tr>
+    <tr>
+      <td>H1 MEF</td>
+      <td>4.19%</td>
+      <td><strong>99.83%</strong></td>
+      <td>⚠️ قيد التحقيق</td>
+    </tr>
+  </table>
+
+  <p><strong>الملاحظات الرئيسية:</strong></p>
+  <ol>
+    <li><code>h</code> (حجم شبكة IFEM) يتطابق تمامًا — جزء IFEM يعمل بشكل صحيح.</li>
+    <li><code>hs = 1.1623</code>: شبكة التجويف تمتد لـ <code>R=[1.5, 2.0]</code>، لذا يمكن أن يكون أكبر حافة عنصر ~1.16.
+      هذا متوقع لـ 213 عقدة فوق قشرة كروية.</li>
+    <li>فحص الحجم يفشل: يفترض أن <code>test_volumes</code> يتحقق من أن مجموع أحجام عناصر FEM يساوي حجم tetrahedron
+      المرجعي. شبكة التجويف لها ثقب كروي، لذا حجمها أقل من tetrahedron الكامل. <strong>فشل فحص الحجم هو نتيجة للهندسة
+        المختلفة، وليس خطأ في تجميع الشبكة.</strong></li>
+    <li>solver CG يتقارب (info=0، المتبقي يصل إلى ~7.7e-5 بعد 5600 تكرار).</li>
+    <li>H1 MEF ~100%: حل FEM على مجال التجويف خاطئ جوهريًا. يتطلب تحقيقًا أعمق.</li>
+  </ol>
+
+  <h3>القضايا المفتوحة بعد الجلسة 2</h3>
+
+  <ol>
+    <li><strong>فشل فحص الحجم</strong> — متوقع نظرًا لهندسة التجويف؛ قد يحتاج <code>test_volumes</code> إلى التحديث لعدم
+      فحص حجم المجال 5، أو توسيع التحمل.</li>
+    <li><strong>H1 MEF ~100%</strong> — حل FEM على مجال التجويف بعيد عن الحل الدقيق. الأسباب الجذرية قيد التحقيق:
+      <ul>
+        <li>88 فقط من عمليات دمج حدود IFEM-FEM (مقابل 802 للمجال الكامل 5). حدود التجويف عند <code>R=1.5</code> لها عقد
+          متطابقة أقل مع حدود IFEM.</li>
+        <li>منطقة FEM التجويف تفرض شروط الحدود فقط على السطح الكروي <code>R=1.5</code>، بينما الحل الدقيق غير تافه هناك.
+        </li>
+        <li>قد يكون حساب RHS في منطقة التجويف خاطئًا إذا كان التكامل مختلفًا عبر هندسة التجويف.</li>
+        <li>دالة <code>weighting</code> في <code>calc_erreurs_keltoum_ok.f</code> تتعامل مع عقد المجال 5 باستخدام
+          <code>fphi(dom, x, vx)</code> في <code>original/</code>، لكن <code>code/</code> له مسار مختلف لـ
+          <code>dom=5</code>.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <hr>
+
+  <h2>أوامر البناء</h2>
+
+  <h3><code>original/tester</code></h3>
+  <pre><code>cd original && gfortran -Wunused -o tester \
+      infinite_keltoum.f mesh_infinite_keltoum.f \
+      ordre0_directRhs_keltoum.f gradients_keltoum1.f \
+      calc_erreurs_keltoum_ok.f solveur_keltoum.f \
+      exemples_keltoum.f gausses.f interpolation.f \
+      utile_infinite_keltoum.f</code></pre>
+
+  <h3><code>code/tester</code> (قياسي)</h3>
+  <pre><code>cd code && gfortran -O2 -fcheck=bounds -Wall \
+      gausses.f solveur_keltoum.f interpolation.f exemples_keltoum.f \
+      infinite_keltoum.f utile_infinite_keltoum.f mesh_infinite_keltoum.f \
+      construir.f ordre0_directRhs_keltoum.f gradients_keltoum1.f \
+      calc_erreurs_keltoum_ok.f -o tester</code></pre>
+
+  <h3><code>code/tester</code> (تصحيح أخطاء)</h3>
+  <pre><code>cd code && gfortran -g -fcheck=all -fbacktrace -Wall -Wextra \
+      gausses.f solveur_keltoum.f interpolation.f exemples_keltoum.f \
+      infinite_keltoum.f utile_infinite_keltoum.f mesh_infinite_keltoum.f \
+      construir.f ordre0_directRhs_keltoum.f gradients_keltoum1.f \
+      calc_erreurs_keltoum_ok.f -o tester_debug</code></pre>
+
+  <hr>
+
+  <h2>خط أنابيب إعادة توليد شبكة FEM</h2>
+
+  <h3>متى يتم التشغيل</h3>
+  <p>شغّل خط الإنتاج الكامل في أي وقت يتغير فيه <code>N</code>، <code>pform</code>، أو <code>mu</code> في
+    <code>original/</code>، حيث أن ذلك يؤثر على إحداثيات عقد المجال 5.</p>
+
+  <h3>الخطوات</h3>
+  <ol>
+    <li><strong>تجهيز</strong> <code>original/mesh_infinite_keltoum.f</code> — أضف كتابة الإخراج بعد حلقة <code>do
+        dom=1,5</code> (السطر 93)، قبل <code>call make_tetra_whsp</code>:
+      <pre><code>open(unit=99, file='nodes10.dat', status='replace')
+          do i = 1, 5*nbnodesTet
+          if (domnod(i) .eq. 5) then
+          write(99, '(3(1x,g22.15))') xin(1,i), xin(2,i), xin(3,i)
+          endif
+          enddo
+          close(99)</code></pre>
+      استخدم <code>5*nbnodesTet</code> (وليس <code>nbnodes</code> — تلك المعلمة ليست في النطاق هنا).
+    </li>
+    <li><strong>بناء وتشغيل</strong> <code>original/tester</code> → يُنشئ <code>original/nodes10.dat</code></li>
+    <li><strong>إعادة التجهيز</strong>.</li>
+    <li><strong>تشغيل</strong> <code>python3 shape.py</code> من جذر المشروع → يُنشئ <code>code/coordinates.dat</code> و
+      <code>code/tetra.dat</code>، يطبع <code>gm</code> و <code>nt</code>.</li>
+    <li><strong>تحديث</strong> <code>code/fondements_keltoum.h</code> السطر 4 مع <code>gm</code> و <code>nt</code>
+      المطبوعة:
+      <pre><code>parameter (N = 20, Ng = 10, gm= &lt;NEW_GM&gt;, nt= &lt;NEW_NT&gt;,</code></pre>
+    </li>
+    <li><strong>إعادة البناء</strong> <code>code/tester</code>.</li>
+  </ol>
+
+  <hr>
+
+  <h2>حالة الملفات (اعتبارًا من 2028-03-08)</h2>
+
+  <table>
+    <tr>
+      <th>الملف</th>
+      <th>الحالة</th>
+      <th>ملاحظات</th>
+    </tr>
+    <tr>
+      <td><code>original/mesh_infinite_keltoum.f</code></td>
+      <td>نظيف (تمت إعادة التجهيز)</td>
+      <td>تمت إزالة كتابة الإخراج</td>
+    </tr>
+    <tr>
+      <td><code>original/nodes10.dat</code></td>
+      <td>1771 سطر</td>
+      <td>تمت إعادة توليد الجلسة 2</td>
+    </tr>
+    <tr>
+      <td><code>original/tester</code></td>
+      <td>مبني</td>
+      <td>بناء الجلسة 2</td>
+    </tr>
+    <tr>
+      <td><code>code/fondements_keltoum.h</code></td>
+      <td><code>gm=213, nt=592</code></td>
+      <td>قيم شبكة التجويف الحالية</td>
+    </tr>
+    <tr>
+      <td><code>code/coordinates.dat</code></td>
+      <td>213 سطر</td>
+      <td>تمت إعادة توليد الجلسة 2</td>
+    </tr>
+    <tr>
+      <td><code>code/tetra.dat</code></td>
+      <td>592 سطر</td>
+      <td>تمت إعادة توليد الجلسة 2</td>
+    </tr>
+    <tr>
+      <td><code>code/tester</code></td>
+      <td>مبني</td>
+      <td>بناء الجلسة 2</td>
+    </tr>
+    <tr>
+      <td><code>code/infinite_keltoum.f</code></td>
+      <td><code>pform=2.D0</code>، <code>ww0(10,nbtetra1)</code></td>
+      <td>تم إصلاح الخطأ 1</td>
+    </tr>
+    <tr>
+      <td><code>code/fondements_keltoum.h</code></td>
+      <td>صيغة <code>nbnodes</code> المصححة</td>
+      <td>تم إصلاح الخطأ 2</td>
+    </tr>
+    <tr>
+      <td><code>code/mesh_infinite_keltoum.f</code></td>
+      <td>حلقة الدمج تبدأ من <code>j=2</code></td>
+      <td>تم إصلاح الخطأ 4</td>
+    </tr>
+    <tr>
+      <td><code>code/ordre0_directRhs_keltoum.f</code></td>
+      <td>حراسات <code>if (m.ne.1)</code> عند 376، 455</td>
+      <td>تم إصلاح الخطأ 5</td>
+    </tr>
+  </table>
+
+  <hr>
+
+  <h2>الأخطاء المعروفة في <code>original/</code> (ليست للإصلاح)</h2>
+
+  <table>
+    <tr>
+      <th>الملف</th>
+      <th>السطر</th>
+      <th>الخطأ</th>
+      <th>ملاحظة</th>
+    </tr>
+    <tr>
+      <td><code>original/infinite_keltoum.f</code></td>
+      <td>~211</td>
+      <td>تم الإبلاغ عن H1 MEF كـ <code>errGrdf/nrm1</code> بدلاً من <code>errGrdf/nrm1f</code></td>
+      <td>خارج النطاق</td>
+    </tr>
+  </table>
+
+  <hr>
+
+  <h2>ملخص جميع الأخطاء المُصلحة في <code>code/</code></h2>
+
+  <table>
+    <tr>
+      <th>#</th>
+      <th>الملف</th>
+      <th>السطر(وط)</th>
+      <th>الخطأ</th>
+      <th>الإصلاح</th>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td><code>infinite_keltoum.f</code></td>
+      <td>490</td>
+      <td><code>ww0(10,nbtetra)</code> — الحلقة تتكرر حتى <code>nbtetra1</code></td>
+      <td><code>ww0(10,nbtetra1)</code></td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><code>fondements_keltoum.h</code></td>
+      <td>8–9</td>
+      <td>صيغة <code>nbnodes</code> <code>4*(nbnodesTet-(N²+N+1))</code> خاطئة</td>
+      <td><code>4*nbnodesTet - 3N² - 5N - 3</code></td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><code>mesh_infinite_keltoum.f</code></td>
+      <td>968</td>
+      <td>الدمج من <code>j=1</code> — يعيد التعيين على عقدة Dirichlet</td>
+      <td>البدء من <code>j=2</code></td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><code>ordre0_directRhs_keltoum.f</code></td>
+      <td>376، 455</td>
+      <td><code>v_rhs(m-1)</code> عندما <code>m=1</code> → فهرس-0</td>
+      <td>حراسة <code>if (m.ne.1)</code></td>
+    </tr>
+  </table>
+
+  <hr>
+
+  <h2>كيف يعمل <code>test_volumes</code> في كلا النسختين</h2>
+
+  <h3>المنطق</h3>
+
+  <p><code>test_volumes</code> выполняет два действия:</p>
+  <ol>
+    <li>يحسب <code>svol(s)</code> — مجموع <code>|det(BK)|</code> على جميع رباعيات الوجوه في المجال الفرعي <code>s</code>
+    </li>
+    <li>يقارن كل <code>svol(s)</code> مقابل <code>volume(s)</code> — الحجم المرجعي للمحدد الكبير <code>s</code>،
+      المُعيَّن بواسطة <code>big_simp_vertices_whsp</code> كـ <code>|det(BT_big)|</code></li>
+  </ol>
+
+  <p><code>volume(5)</code> في كلتا النسختين يُعيَّن كـ <code>|det(bt_big_simp(5))|</code> — حجم tetrahedron المرجعي
+    الكامل (مقياس بـ <code>pform=2</code>). هذا ثابت هندسي لا يعرف شيئًا عن شبكة التجويف.</p>
+
+  <h3>الخطأ في <code>code/</code></h3>
+
+  <p>في <code>code/</code>، كتلة المجال 5 (السطور 914–929) تستخدم بشكل صحيح <code>nt=592</code> لعدد الحلقة. لكن هناك
+    قلق محتمل عند السطر 917:</p>
+
+  <pre><code>s = 5
+      svol(s) = 0.0D0
+      do nnb = 1, nbnode1
+      nb = nnb + (s-1)*nbtet ! check: is this the right offset?</code></pre>
+
+  <p><code>nb = nnb + 4*nbtet = nnb + 4*8000 = nnb + 32000</code></p>
+
+  <p>هذا كُتب بافتراض أن tetrads FEM مخزنة في <code>tetra1</code> في المواضع 32001..32592. التخطيط الفعلي في
+    <code>tetra1</code> هو:</p>
+  <ul>
+    <li>المواضع 1..32000 — مجالات IFEM 1–4 (4 × <code>3*nbprisme+N</code> = 8000 لكل)</li>
+    <li>المواضع 32001..32592 — المجال FEM 5 (<code>nt=592</code> tetrads)</li>
+  </ul>
+
+  <p><code>nnb + (s-1)*nbtet = nnb + 4*8000 = nnb + 32000</code> → المواضع 32001..32592 ✅</p>
+
+  <p>الفهرس صحيح. الفشل يأتي من <code>volume(5)</code>. يتم تعيينه بواسطة <code>big_simp_vertices_whsp</code> عبر
+    <code>bt_big_simp(5)</code> — الذي يحسب حجم tetrahedron المرجعي الكامل بـ <code>pform=2</code>. لـ N=20 الحجم رقم
+    ثابت (~7.54). لكن <code>svol(5)</code> يجمع أحجام 592 رباعي أوجه التجويف — فقط جزء من ذلك الحجم الكامل (شبكة التجويف
+    لها ثقب كروي عند R=1.5 وتغطي قشرة رقيقة فقط). لذا:</p>
+
+  <p><code>svol(5) ≠ volume(5)</code> بالتصميم — شبكة التجويف لا تملأ tetrahedron الكامل عمدًا.</p>
+
+  <p><strong>فشل فحص الحجم أساسي لتصميم شبكة التجويف، وليس خطأ في الكود.</strong></p>
+
+  <h3>الاختلاف الرئيسي في لمحة</h3>
+
+  <table>
+    <tr>
+      <th></th>
+      <th><code>original/</code></th>
+      <th><code>code/</code></th>
+    </tr>
+    <tr>
+      <td><code>volume(5)</code> مُعيَّن إلى</td>
+      <td>حجم tetrahedron الكامل</td>
+      <td>نفس حجم tetrahedron الكامل</td>
+    </tr>
+    <tr>
+      <td><code>svol(5)</code> محسوب كـ</td>
+      <td>مجموع على 8000 tetrads تملأ tet الكامل</td>
+      <td>مجموع على 592 tetrads تجويف (ملء جزئي)</td>
+    </tr>
+    <tr>
+      <td>فحص <code>|svol(5)-volume(5)|/volume(5) <= tol</code>
+      </td>
+      <td>ينجح (شبكة كاملة)</td>
+      <td>يفشل (شبكة التجويف تغطي حجمًا جزئيًا)</td>
+    </tr>
+  </table>
+
+  <h3>خطة الإصلاح</h3>
+
+  <p>هناك خياران معقولان:</p>
+
+  <p><strong>الخيار A —跳过 مجال 5 في فحص الحجم</strong></p>
+
+  <p>افحص فقط المجالات 1–4 في حلقة المقارنة <code>do s = 1,5</code>. غيّر السطر 933:</p>
+
+  <pre><code>! الحالي
+      do s = 1, 5
+      if (dabs((svol(s) - volume(s))/volume(s)).gt.tol) info = 0
+      enddo
+      ! مصحح
+      do s = 1, 4
+      if (dabs((svol(s) - volume(s))/volume(s)).gt.tol) info = 0
+      enddo</code></pre>
+
+  <p>صحيح: فحص الحجم له معنى للمجالات IFEM (التي تُعرف تحليليًا)، ولكن ليس للمجال 5 الذي يستخدم شبكة خارجية بطوبولوجيا
+    مختلفة.</p>
+
+  <p><strong>الخيار B — حساب <code>volume(5)</code> الصحيح لشبكة التجويف</strong></p>
+
+  <p>احسب الحجم الفعلي لشبكة التجويف بجمع أحجام tetrads FEM أثناء تجميع الشبكة، ثم استخدم ذلك كمرجع. أكثر تعقيدًا وليست
+    ضرورية حقًا.</p>
+
+  <p><strong>الخيار A هو الإصلاح الصحيح.</strong> فحص الحجم للمجالات 1–4 لا يزال قيمًا كتحقق من صحة تجميع شبكة IFEM. حجم
+    المجال 5 مختلف عمدًا — لا فائدة من فحصه.</p>
+
+  <hr>
+
+  <h2>مقارنة صيغ <code>nbnodes</code> — المرشح مقابل الحالي</h2>
+
+  <h3>صيغة المرشح (المقترحة)</h3>
+
+  <pre><code>nbnodes = 4*(((N+1)*(N+2)*(N+3))/6 - (N*N+N+1))
+      nbnodes1 = 4*(((N+1)*(N+2)*(N+3))/6 - (N*N+N+1)) + gm</code></pre>
+
+  <h3>الصيغة الحالية في <code>code/fondements_keltoum.h</code></h3>
+
+  <pre><code>nbnodes = 4*((N+1)*(N+2)*(N+3)/6) - 3*N*N - 5*N - 3
+      nbnodes1 = 4*((N+1)*(N+2)*(N+3)/6) - 3*N*N - 5*N - 3 + gm</code></pre>
+
+  <h3>مقارنة رقمية عند N=20</h3>
+
+  <table>
+    <tr>
+      <th></th>
+      <th>الصيغة</th>
+      <th>القيمة</th>
+    </tr>
+    <tr>
+      <td><code>nbnodesTet</code></td>
+      <td><code>(N+1)*(N+2)*(N+3)/6</code></td>
+      <td>1771</td>
+    </tr>
+    <tr>
+      <td><code>N²+N+1</code></td>
+      <td><code>400+20+1</code></td>
+      <td>421</td>
+    </tr>
+    <tr>
+      <td>nbnodes المرشح</td>
+      <td><code>4*(1771 - 421)</code></td>
+      <td><strong>5400</strong></td>
+    </tr>
+    <tr>
+      <td>nbnodes الحالي</td>
+      <td><code>4*1771 - 3*400 - 5*20 - 3</code></td>
+      <td><strong>5781</strong></td>
+    </tr>
+  </table>
+
+  <p><strong>إنهما غير متساويين. 5400 ≠ 5781.</strong></p>
+
+  <p>صيغة المرشح <code>4*(nbnodesTet - (N²+N+1))</code> هي <strong>الصيغة الخاطئة القديمة</strong> من قبل إصلاح الخطأ 2
+    (الجلسة 1). تنقصها 378 عقدة. الصيغة الحالية <code>4*nbnodesTet - 3N² - 5N - 3 = 5781</code> صحيحة — تم تأكيدها بفحص
+    حدود وقت التشغيل في الجلسة 1 (<code>xin1</code> يصل إلى 5782 بالصيغة القديمة).</p>
+
+  <p><code>nbtetra</code> و <code>nbtetra1</code> متطابقان في كلتا الصيغتين — لا يوجد اختلاف هناك.</p>
+
+  <p><strong>الخلاصة: <code>fondements_keltoum.h</code> الحالية صحيحة. لا تعود إلى صيغة المرشح.</strong></p>
+
+</body>
+
+</html>
