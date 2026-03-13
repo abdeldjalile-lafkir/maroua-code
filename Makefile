@@ -8,8 +8,12 @@ ORIGINAL_BIN := original/tester
 CODE_BIN     := code/tester
 OUTPUT_FILE := output.txt
 
-#MATLAB_CMD := /mnt/c/Program\ Files/MATLAB/R2025b/bin/matlab.exe -nodisplay -nosplash -r "shape"
-MATLAB_CMD :=  /mnt/c/Program\ Files/MATLAB/R2025b/bin/matlab.exe -batch "shape"
+MATLAB_MAC    := 00:11:22:33:44:55
+MATLAB_LIC    := $(PWD)/license.lic
+
+#MATLAB_CMD := matlab -nodisplay -nosplash -r "shape"
+#MATLAB_CMD := matlab -batch "shape"
+MATLAB_CMD := docker run --rm --init --mac-address $(MATLAB_MAC) -v $(MATLAB_LIC):/licenses/license.lic -v $(PWD):/workspace -e MLM_LICENSE_FILE=/licenses/license.lic --shm-size=512M mathworks/matlab:r2025b  -batch "run('/workspace/shape.m'),exit"
 
 .PHONY: all original shape code clean
 
@@ -46,5 +50,6 @@ clean:
 	        original/exact2.dat original/interpol2.dat original/nodes10.dat
 	@rm -f code/res_form_fin_0.4_N60.dat code/essai.dat \
 	        code/exact2.dat code/interpol2.dat \
-	        code/fort.24 code/fort.20 code/fort.30 code/fort.40
+	        code/fort.24 code/fort.20 code/fort.30 code/fort.40 \
+					code/xi.dat code/fortran-tetra.dat
 	@echo "Cleaned."

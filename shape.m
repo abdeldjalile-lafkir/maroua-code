@@ -53,8 +53,8 @@ numnodes = size(loc)
 %view(90, -10) % rotate view of shape
 
 % Create PDE model and mesh
-model = createpde;
-[G, mesh] = geometryFromMesh(model, loc', tri');
+%model = createpde;
+%[G, mesh] = geometryFromMesh(model, loc', tri');
 
 % Save results
 save('code/tetra.dat', 'tri', '-ascii')
@@ -64,15 +64,13 @@ axis equal
 
 
 % ── Update header file with mesh statistics ───────────────────────────────────
-gm = numtetrahedra(1);
-nt = numnodes(1);
+nt = numtetrahedra(1);
+gm = numnodes(1);
 update_header(gm, nt);
 
 % ─────────────────────────────────────────────────────────────────────────────
 function update_header(gm, nt)
-    HEADER_PATH = 'code/fondements_keltoum.h';
-
-    fid = fopen(HEADER_PATH, 'r');
+    fid = fopen('code/fondements_keltoum.h');
     content = fread(fid, '*char')';
     fclose(fid);
 
@@ -80,9 +78,9 @@ function update_header(gm, nt)
     pattern = '(gm=\s*)\d+(,\s*nt=\s*)\d+';
     new_content = regexprep(content, pattern, replacement, 'once');
 
-    fid = fopen(HEADER_PATH, 'w');
+    fid = fopen('code/fondements_keltoum.h');
     fwrite(fid, new_content);
     fclose(fid);
 
-    fprintf('Updated %s: gm=%d, nt=%d\n', HEADER_PATH, gm, nt);
+    fprintf('Updated %s: gm=%d, nt=%d\n', 'fondements_keltoum.h', gm, nt);
 end
