@@ -68,10 +68,10 @@
       integer tetra(4, nbtetra), domnod(nbnodes1),  domtet(nbtetra1),
      &    tetra1(4, nbtetra1)
 
-        double precision  xi(3, (4*(N+1)*(N+2)*(N+3))/6)
-        integer catg((4*(N+1)*(N+2)*(N+3))/6),
+        double precision  xi(3, (5*(N+1)*(N+2)*(N+3))/6)
+        integer catg((5*(N+1)*(N+2)*(N+3))/6),
      &   num_catg(10*(N+1)*(N+2)),
-     &   rnum((4*(N+1)*(N+2)*(N+3))/6)
+     &   rnum((5*(N+1)*(N+2)*(N+3))/6)
 
 
 	     nbnodesTet = ((N+1)*(N+2)*(N+3))/6
@@ -88,27 +88,16 @@ c	   nt = 996
             i = (dom-1)*nbnodesTet + k
  	        j = rnum(i)
             do m = 1, 3
-              xin(m, j) = xi(m, i)
+              xin1(m, j) = xi(m, i)
 	        enddo
 	        domnod(j) = dom
 c			write(*,*)  domnod(j)
           enddo
 	     enddo
 		  
-	     do dom = 1, 4
-          do k = 1, nbnodesTet
-            i = (dom-1)*nbnodesTet + k
-c 	        j = rnum(i)
-            do m = 1, 3
-              xin1(m, i) = xin(m, i)
-	        enddo
-	        domnod(i) = dom
-c			write(*,*)  domnod(j)
-          enddo
-	     enddo
 	     call construir(gm,nt,xx,tab)
 	     do k = 1, gm
- 	        i = 4*nbnodesTet + k
+	        i = nbnodes + k
             do m = 1, 3
               xin1(m, i) = xx(m, k)
 	        enddo
@@ -130,7 +119,7 @@ c	        write(*,*) 'k=', domnod(4*nbnodesTet+1)
          do i = 1, nt
             j = 4*(3*nbprisme + N) + i
             do k = 1, 4
-              tetra1(k,j) = tab(k, i)
+              tetra1(k,j) = nbnodes + int(tab(k, i))
             enddo
             domtet(j) = 5
          enddo
@@ -142,7 +131,7 @@ c				 write(*,*) xin(1, kk),xin(2, kk),xin(3, kk)
 c				 write(*,*) domnod(kk)
 c			 endif
 c		enddo
-		   write(*,*) 'kk=', domnod(4*nbnodesTet+1)
+		   write(*,*) 'kk=', domnod(nbnodes+1)
 
    	   return
        end
@@ -546,7 +535,7 @@ c          prisme  : input array) containing the numbers of vertices of the pris
 
 
 	       nbtet = 0
-		   do s = 1, 5
+		   do s = 1, 4
 		    deca = (s-1)*nbnodesTet
 		    nbtet = nbtet + 1
             do j = 1, 4

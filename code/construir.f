@@ -76,20 +76,20 @@ C**** Extract tetra
 
 C**** Write the results to files
       write(*,*) 'The nodes in the fem region have been constructed'
-      open(unit=30, file='xi.dat', status='replace',
-     &     iostat=iostat)
-      do i = 1, gm
-         write(30, *, iostat=iostat) xi(1, i), xi(2, i), xi(3, i)
-         if (iostat .ne. 0) exit
-      enddo
-      close(30)
-      open(unit=40, file='fortran-tetra.dat', status='replace',
-     &     iostat=iostat)
-      do i = 1, nt
-         write(40, *, iostat=iostat) (tetra(k, i), k=1,4)
-         if (iostat .ne. 0) exit
-      enddo
-      close(40)
+C      open(unit=30, file='xi.dat', status='replace',
+C     &     iostat=iostat)
+C      do i = 1, gm
+C         write(30, *, iostat=iostat) xi(1, i), xi(2, i), xi(3, i)
+C         if (iostat .ne. 0) exit
+C      enddo
+C      close(30)
+C      open(unit=40, file='fortran-tetra.dat', status='replace',
+C     &     iostat=iostat)
+C      do i = 1, nt
+C         write(40, *, iostat=iostat) (tetra(k, i), k=1,4)
+C         if (iostat .ne. 0) exit
+C      enddo
+C      close(40)
 
 
       end
