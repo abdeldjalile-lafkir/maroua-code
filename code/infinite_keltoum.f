@@ -68,7 +68,7 @@
 	    gamma2 = 3.6D0 ! must be greater than 3.D0
 	    exmp = 1
 	    iso = 1
-	    pform  = 8.D0
+	    pform  = 2.D0
         mu = 0.5D0
         write(*, *) 'Ng                                  : ', Ng
         write(*, *) 'N                                   : ', N

@@ -1,66 +1,44 @@
 % Load data from file
-fid = fopen('original/nodes10.dat');
-data = fscanf(fid, '%g %g %g', [3, Inf]);
+fid = fopen('original/nodes10.dat', 'r');
+data = fscanf(fid, '%f %f %f', [3, Inf]);
 A = data';
 fclose(fid);
 
-% Define radius
-R = 0.5;
+% Sphere center and radius
+Center = [0 0 0];
+R = 1.5;
 
-% Extract points outside the sphere of radius R
-M = [];
+% Remove points strictly inside the sphere
+distances = sqrt(sum((A - Center) .^ 2, 2));
+RemainingPoints = A(distances > R, :);
 
-for i = 1:length(A)
+fprintf('Number of points before removal: %d\n', size(A, 1));
+fprintf('Number of points after removal: %d\n', size(RemainingPoints, 1));
 
-    if norm(A(i, :)) > R
-        M = [M; A(i, :)];
-    end
-
-end
-
-% Define P = points in M plus a sphere of points at radius R
-[x1, y1, z1] = sphere(12);
-Psphere = [R * x1(:) R * y1(:) R * z1(:)];
-Psphere = unique(Psphere, 'rows');
-P = [M; Psphere];
-
-fprintf('%d points in tetra, %d points in tetra with hole, %d points in tetra with hole plus spherical cavity.\n', ...
-    length(A), length(M), length(P));
-
-% Create alpha shape
-shp = alphaShape(P(:, 1), P(:, 2), P(:, 3), R * 0.8);
-plot(shp)
-
-% Get triangulation
-[tri, loc] = alphaTriangulation(shp);
-
-% Optional: save triangulation and nodes
-% fid = fopen('nodess.dat','w');
-% fprintf(fid,'%i\t %i\t %i\n',loc);
-% fclose(fid);
-% fid = fopen('tetreades.dat','w');
-% fprintf(fid,'%i\t %i\t %i\t %i\n',tri);
-% fclose(fid);
+% Generate tetrahedral mesh (nodes + elements)
+DT = delaunayTriangulation(RemainingPoints);
+nodes = DT.Points;
+elements = DT.ConnectivityList;
 
 % Report mesh statistics
-numtetrahedra = size(tri)
-numnodes = size(loc)
+numtetrahedra = size(elements);
+numnodes = size(nodes);
 
-% Plot shape with axis labels
-%plot(shp)
-%axis equal
-%xlabel('X'); ylabel('Y'); zlabel('Z')
-%view(90, -10) % rotate view of shape
+% Optional plotting (comment out for batch runs)
+% figure
+% tetramesh(DT, 'FaceAlpha', 0.2)
+% axis equal
+% title('Mesh after removing interior points')
+%
+% shp = alphaShape(RemainingPoints, 2);
+% figure
+% plot(shp, 'FaceColor', 'red', 'FaceAlpha', 0.3, 'EdgeColor', 'none')
+% axis equal
+% title('3D shape with internal cavity')
 
-% Create PDE model and mesh
-%model = createpde;
-%[G, mesh] = geometryFromMesh(model, loc', tri');
-
-% Save results
-save('code/tetra.dat', 'tri', '-ascii')
-save('code/coordinates.dat', 'loc', '-ascii')
-
-axis equal
+% Save results in the expected locations
+save('code/tetra.dat', 'elements', '-ascii')
+save('code/coordinates.dat', 'nodes', '-ascii')
 
 
 % ── Update header file with mesh statistics ───────────────────────────────────
@@ -78,7 +56,7 @@ function update_header(gm, nt)
     pattern = '(gm=\s*)\d+(,\s*nt=\s*)\d+';
     new_content = regexprep(content, pattern, replacement, 'once');
 
-    fid = fopen('code/fondements_keltoum.h');
+    fid = fopen('code/fondements_keltoum.h', 'w');
     fwrite(fid, new_content);
     fclose(fid);
 
