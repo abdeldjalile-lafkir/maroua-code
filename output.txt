@@ -1,0 +1,61 @@
+ --> Initilization of constants...
+ Ng                                  :           10
+ N                                   :           20
+ Number of tetraedra                 :        32000
+ Number of vertices                  :         6750
+ Gamma                               :    1.0000000000000000     
+ R                                   :    2.0000000000000000     
+ mu                                  :   0.50000000000000000     
+ --> Meshing...
+ The nodes in the fem region have been constructed
+ kk=           5
+  The size h (in the unbounded domain):   0.33086944163580378     
+  The size hs (in the bounded domain):   3.0243456492024858     
+ ... done ...
+ --> Validity of the mesh: checking volumes
+ ... successful ...  
+ --> Computing the exact solution
+     and the right-hand-side (by interpolation)
+ --> Computing the exact solution
+     and the right-hand-side (directly)
+ ... done ...
+ --> Computing some useful quantities...
+ ... done...
+ --> Solving the linear system...
+ Number of equations to solve:        6841
+ Starting CG solver...
+ CG solver completed with info =           0
+ Calling interpol...
+ Debug: k=           1 dom=           5 nbr=       32096
+ Debug: k=           2 dom=           5 nbr=       32096
+ Debug: k=           3 dom=           5 nbr=       32096
+ Debug: k=           4 dom=           5 nbr=       32096
+ Debug: k=           5 dom=           5 nbr=       32247
+ Debug: k=           6 dom=           5 nbr=       32247
+ Debug: k=           7 dom=           5 nbr=       32023
+ Debug: k=           8 dom=           5 nbr=       32017
+ Debug: k=           9 dom=           5 nbr=       32006
+ Debug: k=          10 dom=           5 nbr=       32260
+ Debug: k=          11 dom=           1 nbr=        8000
+ Debug: k=          12 dom=           1 nbr=        6859
+ Debug: k=          13 dom=           1 nbr=        5832
+ Debug: k=          14 dom=           1 nbr=        4913
+ Debug: k=          15 dom=           1 nbr=        4913
+ Debug: k=          16 dom=           1 nbr=        4096
+ Debug: k=          17 dom=           1 nbr=        4096
+ Debug: k=          18 dom=           1 nbr=        3375
+ Debug: k=          19 dom=           1 nbr=        3375
+ Debug: k=          20 dom=           1 nbr=        3375
+ ... interpol done ...
+ --> Computing errors...
+ Debug: nrm0_exa=  0.27768018363403263     
+ Debug: nrm1_exa=  0.67257480504434619     
+ Debug: erreurL2=   9.4383389793447112E-002
+ Debug: errGrd=  0.38382195529634394     
+ L'erreur relative euclidienne        :  0.33032761630805935     
+ L'erreur ponderee L2 relative        :  0.33989962322208517     
+ L'erreur ponderee H1 relative        :  0.57067548831395287     
+ L'erreur ponderee L2 relative (IFEM) :  0.26814388117709204     
+ L'erreur ponderee H1 relative (IFEM) :  0.42198290535492522     
+ L'erreur ponderee L2 relative (MEF)  :undefined (nrm0f too small)
+ L'erreur ponderee H1 relative (MEF)  :undefined (nrm1f too small)
